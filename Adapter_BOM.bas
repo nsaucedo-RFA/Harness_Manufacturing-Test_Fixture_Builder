@@ -122,8 +122,8 @@ LastRow = 7
 'Table
 Worksheets(C).Cells(LastRow, 3).Value = "Index"
 Worksheets(C).Cells(LastRow, 4).Value = "Part Number"
-Worksheets(C).Cells(LastRow, 5).Value = "Notes"
-Worksheets(C).Cells(LastRow, 6).Value = "Qty"
+Worksheets(C).Cells(LastRow, 5).Value = "Quantity"
+Worksheets(C).Cells(LastRow, 6).Value = "Location"
 
 Worksheets(C).Range("C" & LastRow & ":F" & LastRow).Interior.ThemeColor = xlThemeColorDark1
 Worksheets(C).Range("C" & LastRow & ":F" & LastRow).Interior.Color = RGB(225, 225, 225)
@@ -524,43 +524,43 @@ i = 8
     
 For x = 1 To UBound(Conn)
     Worksheets(C).Cells(i, 4).Value = Conn(x)
-    Worksheets(C).Cells(i, 6).Value = ConnQty(x)
+    Worksheets(C).Cells(i, 5).Value = ConnQty(x)
     i = i + 1
 Next x
     
 For x = 1 To UBound(Accy)
     Worksheets(C).Cells(i, 4).Value = Accy(x)
-    Worksheets(C).Cells(i, 6).Value = AccyQty(x)
+    Worksheets(C).Cells(i, 5).Value = AccyQty(x)
     i = i + 1
 Next x
 
 For x = 1 To UBound(Term)
     Worksheets(C).Cells(i, 4).Value = Term(x)
-    Worksheets(C).Cells(i, 6).Value = TermQty(x)
+    Worksheets(C).Cells(i, 5).Value = TermQty(x)
     i = i + 1
 Next x
 
 For x = 1 To UBound(Seal)
     Worksheets(C).Cells(i, 4).Value = Seal(x)
-    Worksheets(C).Cells(i, 6).Value = SealQty(x)
+    Worksheets(C).Cells(i, 5).Value = SealQty(x)
     i = i + 1
 Next x
 
 For x = 1 To UBound(AmpConn)
     Worksheets(C).Cells(i, 4).Value = AmpConn(x)
-    Worksheets(C).Cells(i, 6).Value = AmpConnQty(x)
+    Worksheets(C).Cells(i, 5).Value = AmpConnQty(x)
     i = i + 1
 Next x
 
 For x = 1 To UBound(AmpWedg)
     Worksheets(C).Cells(i, 4).Value = AmpWedg(x)
-    Worksheets(C).Cells(i, 6).Value = AmpWedgQty(x)
+    Worksheets(C).Cells(i, 5).Value = AmpWedgQty(x)
     i = i + 1
 Next x
 
 For x = 1 To UBound(AmpTerm)
     Worksheets(C).Cells(i, 4).Value = AmpTerm(x)
-    Worksheets(C).Cells(i, 6).Value = AmpTermQty(x)
+    Worksheets(C).Cells(i, 5).Value = AmpTermQty(x)
     i = i + 1
 Next x
 
@@ -578,7 +578,7 @@ i = i + 1
 
 For x = 1 To UBound(Wire)
     Worksheets(C).Cells(i, 4).Value = Wire(x)
-    Worksheets(C).Cells(i, 6).Value = WireQty(x)
+    Worksheets(C).Cells(i, 5).Value = WireQty(x)
     i = i + 1
 Next x
 
@@ -594,17 +594,7 @@ Worksheets(C).Range("C6:F" & LastRow).Borders(xlInsideHorizontal).LineStyle = xl
 Worksheets(C).Range("C6:F" & LastRow).Borders(xlEdgeTop).LineStyle = xlContinuous
 
 Worksheets(C).Columns("D:F").HorizontalAlignment = xlCenter
-Worksheets(C).Columns("C:F").AutoFit
-With Worksheets(C).Columns("E")
- .ColumnWidth = .ColumnWidth * 10
-End With
-
-'----------Add Location Table----------
-
-Worksheets("Sheet5").Range("K3:L17").Copy _
-        Worksheets(C).Range("C" & LastRow + 2 & ":D" & LastRow + 17)
-    
-Worksheets(C).Columns("C:C").AutoFit
+Worksheets(C).Columns("C:F").ColumnWidth = 20
 
 '----------Adjust Print Area----------
 
@@ -623,7 +613,6 @@ Sub Clear_BOM()
 
 'Assign workbook tab to letter
 Dim C As String
-C = "Sheet3"
 
 '----------Sheet Names----------
 C = "New Adapter BOM"
@@ -637,4 +626,165 @@ End If
 
 End Sub
 
+Sub Add_Loc_BOM()
+
+'--------------------Message Prompt--------------------
+
+Dim result As VbMsgBoxResult
+result = MsgBox("Location data will be pulled from the Manufacturing Database. Please save and close the database to avoid losing data. Do you want to continue?" & vbCrLf & vbCrLf & "[Yes]: Proceed with finding locations." & vbCrLf & "[No]: Cancel find location.", vbYesNo + vbQuestion, "Confirmation")
+
+If result = vbNo Then
+    Exit Sub
+End If
+
+'-------------------------Disable Excel Applications-------------------------
+'Disable application auto-updating during code execution
+Application.ScreenUpdating = False
+Application.DisplayStatusBar = False
+Application.EnableEvents = False
+
+'-------------------------Define Sheets -------------------------
+
+'----------Sheet Names----------
+
+Dim C As String
+C = "New Adapter BOM"
+
+Dim x As Integer
+Dim y As Integer
+Dim z As Integer
+
+'--------------------Setup Workbooks--------------------
+
+'Harness Database Workbook
+Dim TF As Workbook
+Set TF = ThisWorkbook
+
+'Tool chart database workbook setup and open
+Dim Data As Workbook
+
+On Error Resume Next
+Set Data = Workbooks.Open(Filename:="I:\Harness Manufacturing\1_Documents\Manufacturing Database (V1.1).xlsx", ReadOnly:=True)
+
+Dim A1 As String
+A1 = "Connectors"
+Dim B1 As String
+B1 = "Contacts"
+Dim C1 As String
+C1 = "Seals"
+Dim F1 As String
+F1 = "Accessories"
+Dim G1 As String
+G1 = "Terminals"
+Dim H1 As String
+H1 = "Fastening Hardware"
+Dim I1 As String
+I1 = "Circuit Elements"
+
+'--------------------Populate Locations--------------------
+LastRow = TF.Worksheets(C).Cells(Rows.Count, 4).End(xlUp).Row
+
+For x = 8 To LastRow
+
+    '----------Connector Locations----------
+    LastRow_Data = Data.Worksheets(A1).Cells(Rows.Count, 2).End(xlUp).Row
+    For y = 4 To LastRow_Data
+        If Data.Worksheets(A1).Cells(y, 1).Value <> "" Then
+            If UCase(TF.Worksheets(C).Cells(x, 4).Value) = UCase(Data.Worksheets(A1).Cells(y, 2).Value) Then
+                
+                TF.Worksheets(C).Cells(x, 6).Value = Data.Worksheets(A1).Cells(y, 1).Value 'Location
+                
+            End If
+        End If
+    Next y
+    
+    '----------Contact Locations----------
+    LastRow_Data = Data.Worksheets(B1).Cells(Rows.Count, 3).End(xlUp).Row
+    For y = 4 To LastRow_Data
+        If Data.Worksheets(B1).Cells(y, 1).Value <> "" Then
+            If UCase(TF.Worksheets(C).Cells(x, 4).Value) = UCase(Data.Worksheets(B1).Cells(y, 3).Value) Then
+                
+                TF.Worksheets(C).Cells(x, 6).Value = Data.Worksheets(B1).Cells(y, 1).Value 'Location
+                
+            End If
+        End If
+    Next y
+    
+    '----------Seal Locations----------
+    LastRow_Data = Data.Worksheets(C1).Cells(Rows.Count, 3).End(xlUp).Row
+    For y = 4 To LastRow_Data
+        If Data.Worksheets(C1).Cells(y, 1).Value <> "" Then
+            If UCase(TF.Worksheets(C).Cells(x, 4).Value) = UCase(Data.Worksheets(C1).Cells(y, 3).Value) Then
+                
+                TF.Worksheets(C).Cells(x, 6).Value = Data.Worksheets(C1).Cells(y, 1).Value 'Location
+                
+            End If
+        End If
+    Next y
+    
+    '----------Accessory Locations----------
+    
+    LastCol_Data = Data.Worksheets(F1).Cells(3, Columns.Count).End(xlToLeft).Column
+
+    For y = 3 To LastCol_Data
+        If Data.Worksheets(F1).Cells(2, y).Value <> "" Then
+            If UCase(TF.Worksheets(C).Cells(x, 4).Value) = UCase(Data.Worksheets(F1).Cells(3, y).Value) Then
+                
+                TF.Worksheets(C).Cells(x, 6).Value = Data.Worksheets(F1).Cells(2, y).Value 'Location
+                
+            End If
+        End If
+    Next y
+    
+    '----------Terminal Locations----------
+    LastRow_Data = Data.Worksheets(G1).Cells(Rows.Count, 2).End(xlUp).Row
+    For y = 4 To LastRow_Data
+        If Data.Worksheets(G1).Cells(y, 1).Value <> "" Then
+            If UCase(TF.Worksheets(C).Cells(x, 4).Value) = UCase(Data.Worksheets(G1).Cells(y, 2).Value) Then
+                
+                TF.Worksheets(C).Cells(x, 6).Value = Data.Worksheets(G1).Cells(y, 1).Value 'Location
+                
+            End If
+        End If
+    Next y
+    
+    '----------Fastening Hardware Locations----------
+    LastRow_Data = Data.Worksheets(H1).Cells(Rows.Count, 2).End(xlUp).Row
+    For y = 4 To LastRow_Data
+        If Data.Worksheets(H1).Cells(y, 1).Value <> "" Then
+            If UCase(TF.Worksheets(C).Cells(x, 4).Value) = UCase(Data.Worksheets(H1).Cells(y, 2).Value) Then
+                
+                TF.Worksheets(C).Cells(x, 6).Value = Data.Worksheets(H1).Cells(y, 1).Value 'Location
+                
+            End If
+        End If
+    Next y
+    
+    '----------Circuit Elements Locations----------
+    LastRow_Data = Data.Worksheets(I1).Cells(Rows.Count, 2).End(xlUp).Row
+    For y = 4 To LastRow_Data
+        If Data.Worksheets(I1).Cells(y, 1).Value <> "" Then
+            If UCase(TF.Worksheets(C).Cells(x, 4).Value) = UCase(Data.Worksheets(I1).Cells(y, 2).Value) Then
+                
+                TF.Worksheets(C).Cells(x, 6).Value = Data.Worksheets(I1).Cells(y, 1).Value 'Location
+                
+            End If
+        End If
+    Next y
+
+Next x
+
+'----------Close Database (Read Only)----------
+
+'Application.DisplayAlerts = False
+Data.Close savechanges:=False
+
+'-------------------------Enable Excel Applications-------------------------
+'Enable application auto-updating during code execution
+Application.ScreenUpdating = True
+Application.DisplayStatusBar = True
+Application.EnableEvents = True
+
+
+End Sub
 
